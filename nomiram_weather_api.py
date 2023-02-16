@@ -13,8 +13,7 @@ geolocation = Nominatim(user_agent="nomiram-app")
 BASE_URL = ""
 PORT = os.environ.get("LISTEN_PORT",5001)
 
-with open("url.json",encoding="utf8") as f:
-    BASE_URL = json.load(f)
+BASE_URL = os.environ.get("API_URL")
 
 def get_weather(city:str, timestamp:str = None, current_weather:bool=False) -> str | None:
     """
