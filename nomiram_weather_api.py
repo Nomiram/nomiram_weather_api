@@ -4,7 +4,10 @@ import json
 import os
 
 import requests
+from flask import Flask, request
 from geopy.geocoders import Nominatim
+
+app = Flask(__name__)
 
 geolocation = Nominatim(user_agent="nomiram-app")
 BASE_URL = ""
@@ -44,7 +47,6 @@ def get_weather(city:str, timestamp:str = None, current_weather:bool=False) -> s
         params["hourly"]="temperature_2m"
     resp = requests.get(BASE_URL,params=params,timeout=10)
     return resp.text
-
 def get_temperature(city:str, timestamp:str = None, current_weather:bool=False) -> float | None:
     """
     Get temperature from API
@@ -71,7 +73,40 @@ def get_temperature(city:str, timestamp:str = None, current_weather:bool=False) 
         return float(json_resp["current_weather"]["temperature"])
     return None
 
+@app.route("/v1/forecast/")
+def v1_get_temperature_forecast():
+    """
+    Return temperature forecast by date and time
+
+    Returns:
+        str: json
+    """
+    city = request.args.get("city")
+    dt = request.args.get("dt")
+    if not city or not dt:
+        return json.dumps({"error":"city and dt must provided"}), 400
+
+    temperature = get_temperature(city=city,timestamp=dt)
+    return json.dumps({"city": city, "unit": "celsius", "temperature": temperature})
+
+@app.route("/v1/current/")
+def v1_get_temperature_now():
+    """
+    Return current temperature
+
+    Returns:
+        str: json
+    """
+    city = request.args.get("city")
+    if not city:
+        return json.dumps({"error":"city must provided"}), 400
+
+    temperature = get_temperature(city=city,current_weather=True)
+    if not temperature:
+        return json.dumps({"error":"Internal Server Error"}), 400
+    return json.dumps({'city': city, "unit": "celsius", "temperature": temperature})
 
 if __name__ == "__main__":
     print(get_temperature("Moscow",current_weather=True))
     print(get_temperature("Moscow",timestamp="2023-02-17T13:00"))
+    app.run("0.0.0.0",port=PORT)
