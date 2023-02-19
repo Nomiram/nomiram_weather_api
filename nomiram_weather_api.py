@@ -6,6 +6,7 @@ import os
 import requests
 from flask import Flask, request
 from geopy.geocoders import Nominatim
+from timezonefinder import TimezoneFinder
 
 app = Flask(__name__)
 
@@ -14,6 +15,9 @@ BASE_URL = ""
 PORT = os.environ.get("LISTEN_PORT",5001)
 
 BASE_URL = os.environ.get("API_URL")
+
+class APIException(Exception):
+    '''Exception that may used when API return not 200 status'''
 
 def get_weather(city:str, timestamp:str = None, current_weather:bool=False) -> str | None:
     """
@@ -31,8 +35,11 @@ def get_weather(city:str, timestamp:str = None, current_weather:bool=False) -> s
     location = geolocation.geocode(city)
     if not location:
         return None
+    tf = TimezoneFinder()
+    timezone = tf.timezone_at(lng=location.longitude, lat=location.latitude)
+
     params = {
-        "timezone": "auto", 
+        "timezone": timezone, 
         "latitude": location.latitude, 
         "longitude": location.longitude
     }
@@ -45,7 +52,12 @@ def get_weather(city:str, timestamp:str = None, current_weather:bool=False) -> s
         params["end_date"] = date.strftime("%Y-%m-%d")
         params["hourly"]="temperature_2m"
     resp = requests.get(BASE_URL,params=params,timeout=10)
+    if resp.status_code != 200:
+        print(resp.text, flush=True)
+        raise APIException(json.loads(resp.text))
+
     return resp.text
+
 def get_temperature(city:str, timestamp:str = None, current_weather:bool=False) -> float | None:
     """
     Get temperature from API
@@ -67,6 +79,9 @@ def get_temperature(city:str, timestamp:str = None, current_weather:bool=False) 
     if timestamp:
         # return temperature by hour (0-23) from hourly temperature (0-24) from API
         date = datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M")
+        print("Debug:", json_resp, flush=True)
+        if json_resp.get("hourly", None) is None:
+            return None
         return float(json_resp["hourly"]["temperature_2m"][date.hour])
     if current_weather:
         return float(json_resp["current_weather"]["temperature"])
@@ -84,8 +99,13 @@ def v1_get_temperature_forecast():
     dt = request.args.get("dt")
     if not city or not dt:
         return json.dumps({"error":"city and dt must provided"}), 400
-
-    temperature = get_temperature(city=city,timestamp=dt)
+    temperature = None
+    try:
+        temperature = get_temperature(city=city,timestamp=dt)
+    except APIException as e:
+        return json.dumps({"error":str(e)}), 500
+    if temperature is None:
+        return json.dumps({"error":"Internal Server Error"}), 500
     return json.dumps({"city": city, "unit": "celsius", "temperature": temperature})
 
 @app.route("/v1/current/")
@@ -100,9 +120,13 @@ def v1_get_temperature_now():
     if not city:
         return json.dumps({"error":"city must provided"}), 400
 
-    temperature = get_temperature(city=city,current_weather=True)
-    if not temperature:
-        return json.dumps({"error":"Internal Server Error"}), 400
+    temperature = None
+    try:
+        temperature = get_temperature(city=city,current_weather=True)
+    except APIException as e:
+        return json.dumps({"error":json.loads(str(e))}), 500
+    if temperature is None:
+        return json.dumps({"error":"Internal Server Error"}), 500
     return json.dumps({'city': city, "unit": "celsius", "temperature": temperature})
 
 if __name__ == "__main__":
