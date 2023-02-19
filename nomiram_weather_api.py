@@ -1,6 +1,7 @@
 '''Get weather from API'''
 import datetime
 import json
+import logging
 import os
 
 import requests
@@ -8,6 +9,7 @@ from flask import Flask, request
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 
+logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
 
 geolocation = Nominatim(user_agent="nomiram-app")
@@ -53,7 +55,7 @@ def get_weather(city:str, timestamp:str = None, current_weather:bool=False) -> s
         params["hourly"]="temperature_2m"
     resp = requests.get(BASE_URL,params=params,timeout=10)
     if resp.status_code != 200:
-        print(resp.text, flush=True)
+        logging.error(resp.text)
         raise APIException(json.loads(resp.text))
 
     return resp.text
@@ -79,7 +81,7 @@ def get_temperature(city:str, timestamp:str = None, current_weather:bool=False) 
     if timestamp:
         # return temperature by hour (0-23) from hourly temperature (0-24) from API
         date = datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M")
-        print("Debug:", json_resp, flush=True)
+        logging.debug(json_resp)
         if json_resp.get("hourly", None) is None:
             return None
         return float(json_resp["hourly"]["temperature_2m"][date.hour])
@@ -130,6 +132,6 @@ def v1_get_temperature_now():
     return json.dumps({'city': city, "unit": "celsius", "temperature": temperature})
 
 if __name__ == "__main__":
-    print(get_temperature("Moscow",current_weather=True))
-    print(get_temperature("Moscow",timestamp="2023-02-17T13:00"))
+    # print(get_temperature("Moscow",current_weather=True))
+    # print(get_temperature("Moscow",timestamp="2023-02-17T13:00"))
     app.run("0.0.0.0",port=PORT)
