@@ -5,7 +5,7 @@ import logging
 import os
 
 import requests
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 
@@ -36,7 +36,7 @@ def get_weather(city:str, timestamp:str = None, current_weather:bool=False) -> s
     # Get latitude and longitude from City name
     location = geolocation.geocode(city)
     if not location:
-        return None
+        raise APIException("Location not found")
     tf = TimezoneFinder()
     timezone = tf.timezone_at(lng=location.longitude, lat=location.latitude)
 
@@ -100,15 +100,15 @@ def v1_get_temperature_forecast():
     city = request.args.get("city")
     dt = request.args.get("dt")
     if not city or not dt:
-        return json.dumps({"error":"city and dt must provided"}), 400
+        return jsonify({"error":"city and dt must provided"}), 400
     temperature = None
     try:
         temperature = get_temperature(city=city,timestamp=dt)
     except APIException as e:
-        return json.dumps({"error":str(e)}), 500
+        return jsonify({"error":str(e)}), 500
     if temperature is None:
-        return json.dumps({"error":"Internal Server Error"}), 500
-    return json.dumps({"city": city, "unit": "celsius", "temperature": temperature})
+        return jsonify({"error":"Internal Server Error"}), 500
+    return jsonify({"city": city, "unit": "celsius", "temperature": temperature})
 
 @app.route("/v1/current/")
 def v1_get_temperature_now():
@@ -120,16 +120,16 @@ def v1_get_temperature_now():
     """
     city = request.args.get("city")
     if not city:
-        return json.dumps({"error":"city must provided"}), 400
+        return jsonify({"error":"city must provided"}), 400
 
     temperature = None
     try:
         temperature = get_temperature(city=city,current_weather=True)
     except APIException as e:
-        return json.dumps({"error":json.loads(str(e))}), 500
+        return jsonify({"error":json.loads(str(e))}), 500
     if temperature is None:
-        return json.dumps({"error":"Internal Server Error"}), 500
-    return json.dumps({'city': city, "unit": "celsius", "temperature": temperature})
+        return jsonify({"error":"Internal Server Error"}), 500
+    return jsonify({'city': city, "unit": "celsius", "temperature": temperature})
 
 if __name__ == "__main__":
     # print(get_temperature("Moscow",current_weather=True))
