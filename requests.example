@@ -1,0 +1,4 @@
+http://localhost:5000/v1/forecast/?city=Moscow&dt=2023-02-21T12:00
+http://localhost:5000/v1/forecast/?city=Riga&dt=2023-02-21T12:00
+http://localhost:5000/v1/current/?city=Moscow
+http://localhost:5000/v1/current/?city=San_Francisco
