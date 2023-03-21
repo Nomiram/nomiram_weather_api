@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   app:
-    build: .
+    build: weatherAPI
     environment:
       - LISTEN_PORT=${LISTEN_PORT}
       - API_URL=${API_URL}
