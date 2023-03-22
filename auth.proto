@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package main;
+
+option go_package = "./;pb";
+
+// Сервис для проверки авторизации пользователя
+service AuthService {
+  // Метод для проверки токена авторизации
+  rpc CheckAuthorization (AuthRequest) returns (AuthResponse) {}
+}
+
+// Запрос на проверку авторизации
+message AuthRequest {
+  // Токен авторизации
+  string username = 1;
+}
+
+// Ответ на проверку авторизации
+message AuthResponse {
+  bool check = 1;
+}

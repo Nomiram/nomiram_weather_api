@@ -4,8 +4,12 @@ import json
 import logging
 import os
 
+import auth_pb2_grpc
+import grpc
 import requests
-from flask import Flask, request, jsonify
+# pylint: disable=no-name-in-module
+from auth_pb2 import AuthRequest
+from flask import Flask, jsonify, request
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 
@@ -64,6 +68,22 @@ def get_weather(city: str, timestamp: str = None,
     return resp.text
 
 
+def auth(username: str) -> bool:
+    """Request auth service by grpc
+
+    Args:
+        username (str): check username is in whitelist
+
+    Returns:
+        bool: true - success
+    """
+    connect_string = f'{os.getenv("GRPC_ADDR","auth")}:{os.getenv("GRPC_PORT","50051")}'
+    with grpc.insecure_channel(connect_string) as channel:
+        stub = auth_pb2_grpc.AuthServiceStub(channel=channel)
+        resp = stub.CheckAuthorization(AuthRequest(username=username))
+        return resp.check
+
+
 def get_temperature(city: str, timestamp: str = None,
                     current_weather: bool = False) -> float | None:
     """
@@ -104,6 +124,12 @@ def v1_get_temperature_forecast():
     Returns:
         str: json
     """
+    if 'Own-Auth-UserName' in request.headers:
+        auth_res = auth(request.headers["Own-Auth-UserName"])
+        if not auth_res:
+            return jsonify({"error": "Forbidden"}), 403
+    else:
+        return jsonify({"error": "Forbidden"}), 403
     city = request.args.get("city")
     dt = request.args.get("dt")
     if not city or not dt:
@@ -127,6 +153,13 @@ def v1_get_temperature_now():
     Returns:
         str: json
     """
+    auth_header = 'Own-Auth-UserName'
+    if auth_header in request.headers:
+        auth_res = auth(request.headers[auth_header])
+        if not auth_res:
+            return jsonify({"error": "Forbidden"}), 403
+    else:
+        return jsonify({"error": "Forbidden"}), 403
     city = request.args.get("city")
     if not city:
         return jsonify({"error": "city must provided"}), 400
@@ -143,6 +176,4 @@ def v1_get_temperature_now():
 
 
 if __name__ == "__main__":
-    # print(get_temperature("Moscow",current_weather=True))
-    # print(get_temperature("Moscow",timestamp="2023-02-17T13:00"))
     app.run("0.0.0.0", port=PORT)
