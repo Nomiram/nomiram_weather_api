@@ -8,6 +8,6 @@ services:
       - GRPC_ADDR=auth
       - GRPC_PORT=50051
     ports:
-      - ${LISTEN_PORT}:${LISTEN_PORT}
+      - ${EXT_LISTEN_PORT}:${LISTEN_PORT}
   auth:
     build: weatherAUTH
