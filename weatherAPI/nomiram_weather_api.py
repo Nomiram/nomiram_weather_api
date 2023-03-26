@@ -124,11 +124,10 @@ def v1_get_temperature_forecast():
     Returns:
         str: json
     """
-    if AUTH_HEADER in request.headers:
-        auth_res = auth(request.headers[AUTH_HEADER])
-        if not auth_res:
-            return jsonify({"error": "Forbidden"}), 403
-    else:
+    if AUTH_HEADER not in request.headers:
+        return jsonify({"error": "Forbidden"}), 403
+    auth_res = auth(request.headers[AUTH_HEADER])
+    if not auth_res:
         return jsonify({"error": "Forbidden"}), 403
     city = request.args.get("city")
     dt = request.args.get("dt")
@@ -153,11 +152,10 @@ def v1_get_temperature_now():
     Returns:
         str: json
     """
-    if AUTH_HEADER in request.headers:
-        auth_res = auth(request.headers[AUTH_HEADER])
-        if not auth_res:
-            return jsonify({"error": "Forbidden"}), 403
-    else:
+    if AUTH_HEADER not in request.headers:
+        return jsonify({"error": "Forbidden"}), 403
+    auth_res = auth(request.headers[AUTH_HEADER])
+    if not auth_res:
         return jsonify({"error": "Forbidden"}), 403
     city = request.args.get("city")
     if not city:
