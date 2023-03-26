@@ -57,8 +57,11 @@ func main() {
 	s := grpc.NewServer()
 	srv := &GRPCServer{}
 	pb.RegisterAuthServiceServer(s, srv)
-
-	l, err := net.Listen("tcp", ":50051")
+	port, ok := os.LookupEnv("GRPC_PORT")
+	if !ok {
+		port = ":50051"
+	}
+	l, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		log.Fatal(err)
 	}

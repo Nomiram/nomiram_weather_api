@@ -5,9 +5,11 @@ services:
     environment:
       - LISTEN_PORT=${LISTEN_PORT}
       - API_URL=${API_URL}
-      - GRPC_ADDR=auth
-      - GRPC_PORT=50051
+      - GRPC_ADDR=${GRPC_ADDR}
+      - GRPC_PORT=${GRPC_PORT}
     ports:
       - ${EXT_LISTEN_PORT}:${LISTEN_PORT}
   auth:
     build: weatherAUTH
+    environment:
+      - GRPC_PORT=${GRPC_PORT}

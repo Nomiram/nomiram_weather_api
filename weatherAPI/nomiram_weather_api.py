@@ -17,10 +17,10 @@ logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
 
 geolocation = Nominatim(user_agent="nomiram-app")
-BASE_URL = ""
 PORT = os.environ.get("LISTEN_PORT", 5001)
 
 BASE_URL = os.environ.get("API_URL")
+AUTH_HEADER = 'Own-Auth-UserName'
 
 
 class APIException(Exception):
@@ -77,7 +77,7 @@ def auth(username: str) -> bool:
     Returns:
         bool: true - success
     """
-    connect_string = f'{os.getenv("GRPC_ADDR","auth")}:{os.getenv("GRPC_PORT","50051")}'
+    connect_string = f'{os.getenv("GRPC_ADDR","localhost")}:{os.getenv("GRPC_PORT","50051")}'
     with grpc.insecure_channel(connect_string) as channel:
         stub = auth_pb2_grpc.AuthServiceStub(channel=channel)
         resp = stub.CheckAuthorization(AuthRequest(username=username))
@@ -124,8 +124,8 @@ def v1_get_temperature_forecast():
     Returns:
         str: json
     """
-    if 'Own-Auth-UserName' in request.headers:
-        auth_res = auth(request.headers["Own-Auth-UserName"])
+    if AUTH_HEADER in request.headers:
+        auth_res = auth(request.headers[AUTH_HEADER])
         if not auth_res:
             return jsonify({"error": "Forbidden"}), 403
     else:
@@ -153,9 +153,8 @@ def v1_get_temperature_now():
     Returns:
         str: json
     """
-    auth_header = 'Own-Auth-UserName'
-    if auth_header in request.headers:
-        auth_res = auth(request.headers[auth_header])
+    if AUTH_HEADER in request.headers:
+        auth_res = auth(request.headers[AUTH_HEADER])
         if not auth_res:
             return jsonify({"error": "Forbidden"}), 403
     else:
