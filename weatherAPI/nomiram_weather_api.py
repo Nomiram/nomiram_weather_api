@@ -7,13 +7,13 @@ import os
 
 import auth_pb2_grpc
 import grpc
+import redis
 import requests
 # pylint: disable=no-name-in-module
 from auth_pb2 import AuthRequest
 from flask import Flask, jsonify, request
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
-import redis
 
 logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
@@ -106,8 +106,11 @@ def get_temperature(city: str, timestamp: str = None,
 
     get_date = date.strftime("%Y-%m-%dT%H:00")
     if FEATURE_REDIS:
-        req = requests.get(f"http://localhost:{PORT}/v1/redis/",
-                           params={"key": get_date}, timeout=200)
+        req = requests.get(
+            f"http://localhost:{PORT}/v1/redis/",
+            params={"key": f"{city}/{get_date}"},
+            timeout=200,
+        )
         if req.status_code == 200:
             logging.debug("cache found in redis: %s, %s",
                           req.status_code, req.text)
@@ -130,8 +133,11 @@ def get_temperature(city: str, timestamp: str = None,
     if current_weather:
         temperature = float(json_resp["current_weather"]["temperature"])
     if FEATURE_REDIS:
-        req_set = requests.put(f"http://localhost:{PORT}/v1/redis/",
-                               json={"key": get_date, "value": temperature}, timeout=200)
+        req_set = requests.put(
+            f"http://localhost:{PORT}/v1/redis/",
+            json={"key": f"{city}/{get_date}", "value": temperature},
+            timeout=200,
+        )
         logging.debug("redis ans: %s %s", req_set.status_code, req_set.text)
     return temperature
 
