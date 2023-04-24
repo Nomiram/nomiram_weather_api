@@ -7,6 +7,9 @@ services:
       - API_URL=${API_URL}
       - GRPC_ADDR=${GRPC_ADDR}
       - GRPC_PORT=${GRPC_PORT}
+      - REDIS_SERVER=${REDIS_SERVER}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     ports:
       - ${EXT_LISTEN_PORT}:${LISTEN_PORT}
   auth:
