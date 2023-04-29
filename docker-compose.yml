@@ -10,6 +10,7 @@ services:
       - REDIS_SERVER=${REDIS_SERVER}
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_CLUSTER=${REDIS_CLUSTER}
     ports:
       - ${EXT_LISTEN_PORT}:${LISTEN_PORT}
   auth:

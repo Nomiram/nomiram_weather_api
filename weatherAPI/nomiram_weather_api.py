@@ -8,6 +8,7 @@ import os
 import auth_pb2_grpc
 import grpc
 import redis
+from redis.cluster import RedisCluster
 import requests
 # pylint: disable=no-name-in-module
 from auth_pb2 import AuthRequest
@@ -22,8 +23,12 @@ geolocation = Nominatim(user_agent="nomiram-app")
 PORT = os.environ.get("LISTEN_PORT", 5001)
 
 FEATURE_REDIS = bool(os.getenv("REDIS_SERVER"))
+FEATURE_REDIS_CLUSTER = bool(os.getenv("REDIS_CLUSTER"))
 BASE_URL = os.environ.get("API_URL")
 AUTH_HEADER = 'Own-Auth-UserName'
+
+# Global Cluster info
+CLUSTER = None
 
 
 class APIException(Exception):
@@ -214,9 +219,14 @@ def v1_redis_set_data():
     value = json_data.get("value", None)
     if key is None or value is None:
         return jsonify({"error": 'json {"key"=key,"value"=value} must provided'}), 500
-    r = redis.Redis(host=os.getenv("REDIS_SERVER"), port=os.getenv(
-        "REDIS_PORT"), decode_responses=True, password=os.getenv("REDIS_PASSWORD"))
-    if r.set(key, value):
+    if not CLUSTER:
+        r = redis.Redis(host=os.getenv("REDIS_SERVER"), port=os.getenv(
+            "REDIS_PORT"), decode_responses=True, password=os.getenv("REDIS_PASSWORD"))
+        if r.set(key, value):
+            return jsonify({"set": "OK"})
+        return jsonify({"error": 'can`t connect to redis'}), 500
+    # else if CLUSTER
+    if CLUSTER.set(key, value):
         return jsonify({"set": "OK"})
     return jsonify({"error": 'can`t connect to redis'}), 500
 
@@ -233,13 +243,21 @@ def v1_redis_get_data():
     and a 404 status code is returned.
     """
     key = request.args.get("key", None)
-    r = redis.Redis(host=os.getenv("REDIS_SERVER"), port=os.getenv(
-        "REDIS_PORT"), decode_responses=True, password=os.getenv("REDIS_PASSWORD"))
-    value = r.get(key)
+    value = None
+    if not CLUSTER:
+        r = redis.Redis(host=os.getenv("REDIS_SERVER"), port=os.getenv(
+            "REDIS_PORT"), decode_responses=True, password=os.getenv("REDIS_PASSWORD"))
+        value = r.get(key)
+    else:
+        value = CLUSTER.get(key).decode()
     if value is not None:
         return jsonify({"value": value})
     return jsonify({"OK": 'key not found'}), 404
 
 
 if __name__ == "__main__":
+    if FEATURE_REDIS_CLUSTER:
+        CLUSTER = RedisCluster(host=os.getenv("REDIS_SERVER"), port=os.getenv(
+            "REDIS_PORT"), password=os.getenv("REDIS_PASSWORD"))
+        logging.debug(CLUSTER.get_nodes())
     app.run("0.0.0.0", port=PORT)
