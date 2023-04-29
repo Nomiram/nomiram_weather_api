@@ -196,7 +196,7 @@ def v1_get_temperature_now():
     try:
         temperature = get_temperature(city=city, current_weather=True)
     except APIException as e:
-        return jsonify({"error": json.loads(str(e))}), 500
+        return jsonify({"error": str(e)}), 500
     if temperature is None:
         return jsonify({"error": "Internal Server Error"}), 500
     return jsonify({'city': city, "unit": "celsius",
@@ -249,7 +249,9 @@ def v1_redis_get_data():
             "REDIS_PORT"), decode_responses=True, password=os.getenv("REDIS_PASSWORD"))
         value = r.get(key)
     else:
-        value = CLUSTER.get(key).decode()
+        value = CLUSTER.get(key)
+        if value:
+            value = value.decode()
     if value is not None:
         return jsonify({"value": value})
     return jsonify({"OK": 'key not found'}), 404
