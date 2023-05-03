@@ -15,9 +15,13 @@ from auth_pb2 import AuthRequest
 from flask import Flask, jsonify, request
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
+from prometheus_flask_exporter import PrometheusMetrics
+
 
 logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
+
+metrics = PrometheusMetrics(app)
 
 geolocation = Nominatim(user_agent="nomiram-app")
 PORT = os.environ.get("LISTEN_PORT", 5001)
