@@ -8,15 +8,14 @@ import os
 import auth_pb2_grpc
 import grpc
 import redis
-from redis.cluster import RedisCluster
 import requests
 # pylint: disable=no-name-in-module
 from auth_pb2 import AuthRequest
 from flask import Flask, jsonify, request
 from geopy.geocoders import Nominatim
-from timezonefinder import TimezoneFinder
 from prometheus_flask_exporter import PrometheusMetrics
-
+from redis.cluster import RedisCluster
+from timezonefinder import TimezoneFinder
 
 logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
@@ -254,8 +253,6 @@ def v1_redis_get_data():
         value = r.get(key)
     else:
         value = CLUSTER.get(key)
-        if value:
-            value = value.decode()
     if value is not None:
         return jsonify({"value": value})
     return jsonify({"OK": 'key not found'}), 404
@@ -264,6 +261,6 @@ def v1_redis_get_data():
 if __name__ == "__main__":
     if FEATURE_REDIS_CLUSTER:
         CLUSTER = RedisCluster(host=os.getenv("REDIS_SERVER"), port=os.getenv(
-            "REDIS_PORT"), password=os.getenv("REDIS_PASSWORD"))
+            "REDIS_PORT"), password=os.getenv("REDIS_PASSWORD"), decode_responses=True)
         logging.debug(CLUSTER.get_nodes())
     app.run("0.0.0.0", port=PORT)
