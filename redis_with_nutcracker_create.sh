@@ -23,7 +23,7 @@ for i in {8002..8003}; do echo masterauth $password >> $i/redis.conf; done
 for i in {8000..8003}; do cd $i; redis-server ./redis.conf --daemonize yes; cd ..; done;
 
 ###
-cat >nutcracker.conf << EOF
+cat >nutcracker.yaml << EOF
 #nutcracker config file
 redis:
  listen: 0.0.0.0:22121
