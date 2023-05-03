@@ -15,12 +15,12 @@ appendonly yes
 EOF
 ###
 
-mkdir -p {7000..7003};
-for i in {7000..7003}; do cp redis.conf $i; sed -i "s/{port}/$i/g" $i/redis.conf; done
+mkdir -p {8000..8003};
+for i in {8000..8003}; do cp redis.conf $i; sed -i "s/{port}/$i/g" $i/redis.conf; done
 
-for i in {7002..7003}; do echo slaveof $clusterIP $(echo $i-2|bc) >> $i/redis.conf; done
-for i in {7002..7003}; do echo masterauth {yourSecureRedisPassword} >> $i/redis.conf; done
-for i in {7000..7003}; do cd $i; redis-server ./redis.conf --daemonize yes; cd ..; done;
+for i in {8002..8003}; do echo slaveof $clusterIP $(echo $i-2|bc) >> $i/redis.conf; done
+for i in {8002..8003}; do echo masterauth $password >> $i/redis.conf; done
+for i in {8000..8003}; do cd $i; redis-server ./redis.conf --daemonize yes; cd ..; done;
 
 ###
 cat >nutcracker.conf << EOF
@@ -32,10 +32,10 @@ redis:
  redis: true
  server_retry_timeout: 100
  server_failure_limit: 500
- redis_auth: {yourSecureRedisPassword}
+ redis_auth: $password
  servers:
- - $clusterIP:7000:1 db-redis-1
- - $clusterIP:7001:1 db-redis-2
+ - $clusterIP:8000:1 db-redis-1
+ - $clusterIP:8001:1 db-redis-2
  timeout: 400
 EOF
 ###
